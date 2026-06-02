@@ -56,7 +56,6 @@ public class CustomerRepository : ICustomerRepository
             await cmd.ExecuteNonQueryAsync(ct);
             await tx.CommitAsync(ct);
 
-            // SCOPE_IDENTITY returns decimal in some cases, force int
             return Convert.ToInt32(idParam.Value);
         }
         catch

@@ -2,7 +2,6 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllersWithViews();
 
-// Typed HttpClient pointing at the Web API.
 builder.Services.AddHttpClient("Api", c =>
 {
     var baseUrl = builder.Configuration["ApiBaseUrl"]
