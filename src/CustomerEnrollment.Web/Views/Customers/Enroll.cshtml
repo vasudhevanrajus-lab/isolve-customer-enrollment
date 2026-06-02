@@ -1,0 +1,117 @@
+@model CustomerInputModel
+@{ ViewData["Title"] = "Enroll"; }
+
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card shadow-sm">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0">Customer Enrollment</h4>
+                <small>Fields are encrypted in the browser before being sent.</small>
+            </div>
+            <div class="card-body">
+                <div id="alertBox" class="alert d-none"></div>
+
+                <form id="enrollForm" novalidate>
+                    <div class="mb-3">
+                        <label class="form-label">Name</label>
+                        <input asp-for="Name" class="form-control" required />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Mobile</label>
+                        <input asp-for="Mobile" class="form-control" pattern="\d{10}" required />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Email</label>
+                        <input asp-for="Email" type="email" class="form-control" required />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Proof Type</label>
+                        <select asp-for="ProofType" class="form-select" required>
+                            <option value="Aadhaar">Aadhaar</option>
+                            <option value="PAN">PAN</option>
+                            <option value="Passport">Passport</option>
+                            <option value="VoterId">Voter ID</option>
+                            <option value="DrivingLicense">Driving License</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Proof Reference Number</label>
+                        <input asp-for="ProofRef" class="form-control" required />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Address</label>
+                        <textarea asp-for="Address" class="form-control" rows="3" required></textarea>
+                    </div>
+                    <button type="submit" id="submitBtn" class="btn btn-primary">Submit</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    var aesKey  = CryptoJS.enc.Base64.parse(@Html.Raw(Json.Serialize(ViewBag.AesKeyBase64 ?? "")));
+    var aesIv   = CryptoJS.enc.Base64.parse(@Html.Raw(Json.Serialize(ViewBag.AesIvBase64  ?? "")));
+    var apiBase = @Html.Raw(Json.Serialize(ViewBag.ApiBaseUrl ?? ""));
+
+    function encryptField(value) {
+        var cipher = CryptoJS.AES.encrypt(value, aesKey, {
+            iv: aesIv,
+            mode: CryptoJS.mode.CBC,
+            padding: CryptoJS.pad.Pkcs7
+        });
+        return cipher.ciphertext.toString(CryptoJS.enc.Base64);
+    }
+
+    function showAlert(kind, message) {
+        var box = document.getElementById('alertBox');
+        box.className = 'alert alert-' + kind;
+        box.textContent = message;
+        box.classList.remove('d-none');
+    }
+
+    document.getElementById('enrollForm').addEventListener('submit', async function (ev) {
+        ev.preventDefault();
+
+        var form = ev.target;
+        if (!form.checkValidity()) {
+            form.classList.add('was-validated');
+            return;
+        }
+
+        var btn = document.getElementById('submitBtn');
+        btn.disabled = true;
+        btn.textContent = 'Submitting...';
+
+        var payload = {
+            Name      : encryptField(form.Name.value.trim()),
+            Mobile    : encryptField(form.Mobile.value.trim()),
+            Email     : encryptField(form.Email.value.trim()),
+            ProofType : encryptField(form.ProofType.value),
+            ProofRef  : encryptField(form.ProofRef.value.trim()),
+            Address   : encryptField(form.Address.value.trim())
+        };
+
+        try {
+            var resp = await fetch(apiBase + 'api/customers', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (!resp.ok) {
+                var errText = await resp.text();
+                throw new Error("API " + resp.status + ": " + errText);
+            }
+
+            var data = await resp.json();
+            window.location = "/Customers/Enrolled?id=" + data.customerId;
+        } catch (err) {
+            showAlert('danger', 'Enrollment failed: ' + err.message);
+            btn.disabled = false;
+            btn.textContent = 'Submit';
+        }
+    });
+</script>
+}

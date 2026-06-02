@@ -1,0 +1,22 @@
+@{ ViewData["Title"] = "Search"; }
+
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        @if (TempData["Error"] is string err)
+        {
+            <div class="alert alert-warning">@err</div>
+        }
+        <div class="card shadow-sm">
+            <div class="card-header">Find Customer</div>
+            <div class="card-body">
+                <form asp-action="Details" method="get">
+                    <div class="mb-3">
+                        <label class="form-label">Customer ID</label>
+                        <input name="id" type="number" min="1" class="form-control" required />
+                    </div>
+                    <button type="submit" class="btn btn-primary">Retrieve</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
